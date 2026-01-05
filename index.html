@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>2026 龜山傳教士請客表</title>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#b91c1c">
+    
+    <!-- 引入 Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- 引入 React 和 Babel -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- 引入 Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Caveat:wght@700&display=swap" rel="stylesheet">
+
+    <style>
+        body { 
+            font-family: 'Noto Sans TC', "Microsoft JhengHei", sans-serif; 
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        /* 自定義動畫 */
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
+        
+        @keyframes popIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+        .animate-pop-in { animation: popIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+        
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .animate-spin-slow { animation: spin 1s linear infinite; }
+
+        /* 隱藏滾動條但保持功能 */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        input[type="time"]::-webkit-calendar-picker-indicator {
+            background: transparent;
+            bottom: 0; color: transparent; cursor: pointer; height: auto; left: 0; position: absolute; right: 0; top: 0; width: auto;
+        }
+        
+        .speech-bubble::before {
+            content: ''; position: absolute; left: -8px; top: 20px; width: 0; height: 0;
+            border-top: 8px solid transparent; border-bottom: 8px solid transparent; border-right: 8px solid #f3f4f6;
+        }
+        @media (max-width: 768px) {
+            .speech-bubble::before {
+                left: 20px; top: -8px; border-right: 8px solid transparent; border-left: 8px solid transparent; border-bottom: 8px solid #f3f4f6;
+            }
+        }
+    </style>
+</head>
+<body class="bg-orange-50 min-h-screen pb-20 selection:bg-red-200">
+
+    <div id="root"></div>
+
+    <script type="text/babel">
+        /*
+         * =========================================================================
+         * ★★★ Google Apps Script 設定 ★★★
+         * 已填入您的部署網址，App 現在會自動讀取與寫入您的 Google Sheet。
+         * =========================================================================
+         */
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxnZLR8ZsEzhuIaEuL0vDNLvamQQl13Wnm2HnU4cEAFqH15jEUyMQhXMgAkrwCzfJmb/exec"; 
+        // =========================================================================
+
+        const { useState, useEffect, useRef } = React;
+
+        // --- 1. 圖示組件 ---
+        const Icons = {
+            Heart: ({ className }) => <svg viewBox="0 0 24 24" fill="currentColor" className={className}><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>,
+            User: ({ size }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>,
+            Phone: ({ size, className }) => <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>,
+            Users: ({ size, className }) => <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>,
+            Clock: ({ size, className }) => <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>,
+            Calendar: ({ size }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>,
+            Plus: ({ size }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>,
+            X: ({ size }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>,
+            Trash: ({ size }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>,
+            Edit: ({ size, className }) => <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>,
+            Share: ({ size }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line></svg>,
+            Quote: ({ size, className }) => <svg width={size} height={size} className={className} viewBox="0 0 24 24" fill="currentColor"><path d="M14.017 21L14.017 18C14.017 16.8954 14.9124 16 16.017 16H19.017C19.5693 16 20.017 15.5523 20.017 15V9C20.017 8.44772 19.5693 8 19.017 8H15.017C14.4647 8 14.017 8.44772 14.017 9V11C14.017 11.5523 13.5693 12 13.017 12H12.017V5H22.017V15C22.017 18.3137 19.3307 21 16.017 21H14.017ZM5.0166 21L5.0166 18C5.0166 16.8954 5.91203 16 7.0166 16H10.0166C10.5689 16 11.0166 15.5523 11.0166 15V9C11.0166 8.44772 10.5689 8 10.0166 8H6.0166C5.46432 8 5.0166 8.44772 5.0166 9V11C5.0166 11.5523 4.56889 12 4.0166 12H3.0166V5H13.0166V15C13.0166 18.3137 10.3303 21 7.0166 21H5.0166Z"></path></svg>,
+            Cloud: ({ size }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"></path></svg>,
+            CloudCheck: ({ size }) => <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"></path><polyline points="8 12.5 10 14.5 15 9.5"></polyline></svg>
+        };
+
+        // --- 2. 資料設定 ---
+        const MISSIONARY_CONTACTS = [
+            { 
+                title: "長老", 
+                names: "陳尚杰 / 博而思", 
+                phone: "0910626173", 
+                gender: 'elder',
+                // ▼▼▼ 請在此處貼上【長老】照片的連結 ▼▼▼
+                image: "https://api.dicebear.com/9.x/micah/svg?seed=Elder&backgroundColor=b6e3f4", 
+                intro: "大家好！我們喜歡打籃球和吃牛肉麵，非常期待能認識大家，分享快樂的信息！"
+            },
+            { 
+                title: "姐妹", 
+                names: "林梓譯 / 郭嬋娟", 
+                phone: "0905819358", 
+                gender: 'sister',
+                // ▼▼▼ 請在此處貼上【姐妹】照片的連結 ▼▼▼
+                image: "https://api.dicebear.com/9.x/micah/svg?seed=Sisters&backgroundColor=ffd5dc",
+                intro: "嗨！我們超愛台灣的人情味。歡迎大家邀請我們去家裡坐坐，我們可以唱首好聽的聖詩給你們聽～"
+            }
+        ];
+
+        // 2026 年農曆對照表
+        const SCHEDULE_DAYS = [
+            { date: '2/15', name: '小年夜', day: '日' },
+            { date: '2/16', name: '除夕', day: '一' },
+            { date: '2/17', name: '初一', day: '二' },
+            { date: '2/18', name: '初二', day: '三' },
+            { date: '2/19', name: '初三', day: '四' },
+            { date: '2/20', name: '初四', day: '五' },
+            { date: '2/21', name: '初五', day: '六' },
+            { date: '2/22', name: '初六', day: '日' },
+        ];
+
+        const MEAL_TYPES = ['早餐', '午餐', '晚餐'];
+
+        // --- 3. 組件 ---
+
+        // 頁首
+        const Header = ({ isSynced, isLoading }) => (
+            <div className="bg-gradient-to-br from-red-700 to-red-800 text-white pb-8 pt-6 px-6 shadow-xl rounded-b-[2.5rem] mb-6 relative overflow-hidden">
+                <div className="absolute top-0 right-0 opacity-10 transform translate-x-10 -translate-y-10 text-white">
+                    <Icons.Heart className="w-48 h-48" />
+                </div>
+                {GOOGLE_SCRIPT_URL && (
+                    <div className="absolute top-4 right-4 flex items-center gap-1 text-xs bg-black/20 px-2 py-1 rounded-full backdrop-blur-sm">
+                        {isLoading ? (
+                            <Icons.Cloud className="w-4 h-4 animate-bounce text-yellow-300" />
+                        ) : (
+                            <Icons.CloudCheck className="w-4 h-4 text-green-300" />
+                        )}
+                        <span className="opacity-80">{isLoading ? '同步中...' : '已同步'}</span>
+                    </div>
+                )}
+                <div className="relative z-10 flex flex-col items-center">
+                    <span className="bg-red-900/30 text-red-100 text-xs px-3 py-1 rounded-full mb-3 border border-red-400/30">
+                        龜山支會
+                    </span>
+                    <h1 className="text-3xl font-bold mb-3 text-center tracking-wider text-shadow">
+                        2026 傳教士請客表
+                    </h1>
+                    <p className="text-center text-red-50 text-sm leading-relaxed max-w-lg opacity-90">
+                        願大家在新的一年都能繼續成為基督的門徒～邀請大家在農曆春節期間與傳教士分享喜悅。
+                    </p>
+                    <div className="mt-4 flex items-center gap-2 text-yellow-300 bg-red-900/40 px-4 py-2 rounded-lg backdrop-blur-sm border border-yellow-500/20">
+                        <span className="text-lg">🧧</span>
+                        <span className="text-xs font-medium">傳教士不能收紅包，但很歡迎卡片喔！</span>
+                    </div>
+                </div>
+            </div>
+        );
+
+        // 聯絡人卡片
+        const ContactCard = () => (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-8 px-4 max-w-5xl mx-auto">
+                {MISSIONARY_CONTACTS.map((contact, idx) => (
+                    <div key={idx} className="bg-white rounded-3xl p-5 shadow-lg border-2 border-white ring-1 ring-gray-100 flex flex-col md:flex-row gap-5 relative overflow-hidden hover:-translate-y-1 transition-transform duration-300">
+                        <div className="flex-shrink-0 flex justify-center md:justify-start">
+                            <div className={`relative transform ${idx % 2 === 0 ? '-rotate-2' : 'rotate-2'} transition-transform hover:rotate-0 duration-300`}>
+                                <div className="w-32 h-32 md:w-36 md:h-36 bg-white p-1.5 shadow-md rounded-2xl border border-gray-100">
+                                    <div className={`w-full h-full rounded-xl overflow-hidden relative ${
+                                        contact.gender === 'elder' ? 'bg-blue-50' : 'bg-pink-50'
+                                    }`}>
+                                        {contact.image ? (
+                                            <img 
+                                                src={contact.image} 
+                                                alt={contact.names}
+                                                className="w-full h-full object-cover"
+                                                onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
+                                            />
+                                        ) : null}
+                                        <div className="w-full h-full flex items-center justify-center absolute top-0 left-0" style={{display: contact.image ? 'none' : 'flex'}}>
+                                            <Icons.Users size={48} className={contact.gender === 'elder' ? 'text-blue-300' : 'text-pink-300'} />
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 w-12 h-4 bg-yellow-200/60 rotate-2 backdrop-blur-sm"></div>
+                            </div>
+                        </div>
+                        <div className="flex-1 min-w-0 flex flex-col">
+                            <div className="flex justify-between items-start mb-2">
+                                <div>
+                                    <h3 className="font-bold text-gray-800 text-xl leading-tight flex items-center gap-2">
+                                        {contact.names}
+                                        <span className={`text-[10px] px-2 py-0.5 rounded-full ${
+                                            contact.gender === 'elder' ? 'bg-blue-100 text-blue-700' : 'bg-pink-100 text-pink-700'
+                                        }`}>
+                                            {contact.title}
+                                        </span>
+                                    </h3>
+                                </div>
+                                <a href={`tel:${contact.phone}`} className="w-10 h-10 rounded-full bg-green-50 text-green-600 flex items-center justify-center hover:bg-green-100 hover:scale-110 transition-all border border-green-200 shadow-sm shrink-0">
+                                    <Icons.Phone size={20} />
+                                </a>
+                            </div>
+                            <div className="mt-2 flex-1 relative">
+                                <div className="speech-bubble bg-gray-50 p-3 rounded-2xl text-sm text-gray-600 leading-relaxed border border-gray-100 relative shadow-sm">
+                                    <div className="absolute -top-2 -left-1 text-gray-300">
+                                        <Icons.Quote size={16} />
+                                    </div>
+                                    <p className="pl-4 italic font-medium">
+                                        {contact.intro}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        );
+
+        // 預約彈出視窗
+        const BookingModal = ({ isOpen, onClose, data, onSave, onDelete, isEdit, type, isProcessing }) => {
+            const [family, setFamily] = useState('');
+            const [phone, setPhone] = useState('');
+            const [time, setTime] = useState('');
+            const [dateVal, setDateVal] = useState('');
+
+            useEffect(() => {
+                if (isOpen && data) {
+                    setFamily(data.family || '');
+                    setPhone(data.phone || '');
+                    
+                    if (type === 'grid') {
+                        setTime(data.time || data.defaultTime || '');
+                    } else {
+                        if (isEdit && data.time) {
+                            const parts = data.time.split(' ');
+                            if (parts.length >= 2) {
+                                const dParts = parts[0].split('/');
+                                if (dParts.length === 2) {
+                                    setDateVal(`2026-${dParts[0].padStart(2,'0')}-${dParts[1].padStart(2,'0')}`);
+                                }
+                                setTime(parts[1]);
+                            } else {
+                                setDateVal('2026-02-15');
+                                setTime('15:00');
+                            }
+                        } else {
+                            setDateVal('2026-02-15');
+                            setTime('15:00');
+                        }
+                    }
+                }
+            }, [isOpen, data, type, isEdit]);
+
+            if (!isOpen) return null;
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                let finalTime = time;
+                if (type === 'other') {
+                    const dObj = new Date(dateVal);
+                    if (!isNaN(dObj.getTime())) {
+                        const dateStr = `${dObj.getMonth() + 1}/${dObj.getDate()}`;
+                        finalTime = `${dateStr} ${time}`;
+                    }
+                }
+                onSave({ family, phone, time: finalTime });
+            };
+
+            return (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity" onClick={onClose}></div>
+                    <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden animate-pop-in relative z-10">
+                        {isProcessing && (
+                            <div className="absolute inset-0 bg-white/80 z-20 flex flex-col items-center justify-center">
+                                <div className="w-10 h-10 border-4 border-red-200 border-t-red-600 rounded-full animate-spin-slow mb-3"></div>
+                                <span className="text-red-600 font-bold text-sm">儲存中...</span>
+                            </div>
+                        )}
+                        <div className="bg-red-600 p-5 flex justify-between items-start text-white relative overflow-hidden">
+                            <div className="absolute -right-4 -top-4 text-red-500 opacity-20">
+                                <Icons.Heart className="w-24 h-24" />
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-xl relative z-10">
+                                    {isEdit ? '修改預約' : '新增預約'}
+                                </h3>
+                                {data?.slotLabel && (
+                                    <p className="text-red-100 text-sm mt-1 relative z-10 opacity-90 font-mono">
+                                        {data.slotLabel}
+                                    </p>
+                                )}
+                            </div>
+                            <button onClick={onClose} className="bg-white/20 hover:bg-white/30 p-1.5 rounded-full transition-colors relative z-10">
+                                <Icons.X size={18} />
+                            </button>
+                        </div>
+                        
+                        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 mb-1.5">家庭名稱 / 稱呼 <span className="text-red-500">*</span></label>
+                                <div className="relative group">
+                                    <div className="absolute left-3 top-3 text-gray-400 group-focus-within:text-red-500">
+                                        <Icons.User size={18} />
+                                    </div>
+                                    <input
+                                        type="text"
+                                        required
+                                        value={family}
+                                        onChange={(e) => setFamily(e.target.value)}
+                                        placeholder="例如：王小明家庭"
+                                        className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-red-500 outline-none transition-all"
+                                    />
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 mb-1.5">聯絡電話</label>
+                                <div className="relative group">
+                                    <div className="absolute left-3 top-3 text-gray-400 group-focus-within:text-red-500">
+                                        <Icons.Phone size={18} />
+                                    </div>
+                                    <input
+                                        type="tel"
+                                        value={phone}
+                                        onChange={(e) => setPhone(e.target.value)}
+                                        placeholder="0912-345-678"
+                                        className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-red-500 outline-none transition-all"
+                                    />
+                                </div>
+                            </div>
+                            {type === 'other' && (
+                                <div>
+                                    <label className="block text-sm font-bold text-gray-700 mb-1.5">預約日期 <span className="text-red-500">*</span></label>
+                                    <div className="relative group">
+                                        <div className="absolute left-3 top-3 text-gray-400 group-focus-within:text-red-500">
+                                            <Icons.Calendar size={18} />
+                                        </div>
+                                        <input
+                                            type="date"
+                                            required
+                                            value={dateVal}
+                                            onChange={(e) => setDateVal(e.target.value)}
+                                            min="2026-01-01" max="2026-12-31"
+                                            className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-red-500 outline-none transition-all"
+                                        />
+                                    </div>
+                                </div>
+                            )}
+                            <div>
+                                <label className="block text-sm font-bold text-gray-700 mb-1.5">
+                                    {type === 'other' ? '預約時間' : '詳細時間'} <span className="text-red-500">*</span>
+                                </label>
+                                <div className="relative group">
+                                    <div className="absolute left-3 top-3 text-gray-400 group-focus-within:text-red-500 pointer-events-none z-10">
+                                        <Icons.Clock size={18} />
+                                    </div>
+                                    <input
+                                        type="time"
+                                        required
+                                        value={time}
+                                        onChange={(e) => setTime(e.target.value)}
+                                        className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-red-500 outline-none transition-all relative"
+                                    />
+                                </div>
+                            </div>
+                            <div className="flex gap-3 pt-4 mt-2">
+                                {isEdit && (
+                                    <button
+                                        type="button"
+                                        onClick={onDelete}
+                                        className="flex-1 py-3 px-4 bg-red-50 text-red-600 font-bold rounded-xl hover:bg-red-100 transition-colors flex justify-center items-center gap-2 active:scale-95 transform duration-150"
+                                    >
+                                        <Icons.Trash size={18} />
+                                        取消
+                                    </button>
+                                )}
+                                <button
+                                    type="submit"
+                                    className="flex-[2] py-3 px-4 bg-red-600 text-white font-bold rounded-xl hover:bg-red-700 shadow-lg shadow-red-200 transition-all flex justify-center items-center gap-2 active:scale-95 transform duration-150"
+                                >
+                                    {isEdit ? <Icons.Edit size={18} /> : <Icons.Plus size={18} />}
+                                    {isEdit ? '儲存' : '確認預約'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- 4. 主應用程式 ---
+        const App = () => {
+            const [bookings, setBookings] = useState({});
+            const [otherBookings, setOtherBookings] = useState([]);
+            const [isModalOpen, setIsModalOpen] = useState(false);
+            const [currentSlot, setCurrentSlot] = useState(null);
+            const [activeTab, setActiveTab] = useState('grid');
+            
+            // Google Sheet 狀態
+            const [isLoading, setIsLoading] = useState(false);
+            const [isProcessing, setIsProcessing] = useState(false); // 儲存中
+            
+            // 初始化：判斷是 Local 還是 Google Sheet
+            useEffect(() => {
+                const initData = async () => {
+                    if (GOOGLE_SCRIPT_URL) {
+                        setIsLoading(true);
+                        try {
+                            // 加上 timestamp 防止快取
+                            const response = await fetch(`${GOOGLE_SCRIPT_URL}?t=${new Date().getTime()}`);
+                            const data = await response.json();
+                            if (data) {
+                                setBookings(data.grid || {});
+                                setOtherBookings(data.other || []);
+                            }
+                        } catch (error) {
+                            console.error("Fetch Error:", error);
+                            alert("無法讀取雲端資料，將切換為離線模式顯示 (可能需要檢查網址或權限)。");
+                        } finally {
+                            setIsLoading(false);
+                        }
+                    } else {
+                        // 本地模式
+                        const savedGrid = localStorage.getItem('bookings_grid_2026');
+                        const savedOther = localStorage.getItem('bookings_other_2026');
+                        if (savedGrid) setBookings(JSON.parse(savedGrid));
+                        if (savedOther) setOtherBookings(JSON.parse(savedOther));
+                    }
+                };
+                initData();
+            }, []);
+
+            // 統一的儲存處理
+            const saveData = async (newGrid, newOther) => {
+                const finalGrid = newGrid || bookings;
+                const finalOther = newOther || otherBookings;
+
+                // 更新 State (樂觀 UI 更新)
+                setBookings(finalGrid);
+                setOtherBookings(finalOther);
+                setIsModalOpen(false); // 先關閉視窗，體驗較好
+                
+                // 本地備份 (無論如何都存一份本地，以防萬一)
+                localStorage.setItem('bookings_grid_2026', JSON.stringify(finalGrid));
+                localStorage.setItem('bookings_other_2026', JSON.stringify(finalOther));
+
+                if (GOOGLE_SCRIPT_URL) {
+                    setIsProcessing(true); // 如果視窗還開著，顯示轉圈圈 (但在這邏輯下視窗已關，這主要用於除錯或若我們決定不關視窗)
+                    // 由於 Google Sheet 回應較慢，我們在背景執行
+                    try {
+                         await fetch(GOOGLE_SCRIPT_URL, {
+                            method: 'POST',
+                            body: JSON.stringify({ grid: finalGrid, other: finalOther }),
+                            mode: 'no-cors' // Google Script WebApp POST 常用技巧，忽略回應以避免 CORS 錯誤 (只要確認發送成功)
+                        });
+                        // 注意：no-cors 模式下無法確認是否成功，但在這場景通常足夠
+                    } catch (error) {
+                        alert("雲端同步失敗，資料僅儲存於本地。請檢查網路。");
+                    } finally {
+                        setIsProcessing(false);
+                    }
+                }
+            };
+
+            const handleSlotClick = (date, meal, name, day, existingBooking) => {
+                setCurrentSlot({
+                    id: existingBooking?.id || `grid_${Date.now()}`,
+                    type: 'grid',
+                    date,
+                    meal,
+                    slotLabel: `${date} ${name} ${meal}`,
+                    existingData: existingBooking,
+                    defaultTime: meal === '午餐' ? '12:00' : (meal === '晚餐' ? '18:00' : '08:00')
+                });
+                setIsModalOpen(true);
+            };
+
+            const handleOtherClick = (existingBooking = null) => {
+                setCurrentSlot({
+                    id: existingBooking?.id || `other_${Date.now()}`,
+                    type: 'other',
+                    existingData: existingBooking,
+                    slotLabel: '其他時間預約',
+                    defaultTime: '15:00'
+                });
+                setIsModalOpen(true);
+            };
+
+            const saveBooking = (formData) => {
+                // 如果正在雲端儲存，可以選擇顯示 Loading 並阻擋 (這裡選擇樂觀更新，不阻擋 UI)
+                const newBooking = {
+                    id: currentSlot.id,
+                    type: currentSlot.type,
+                    ...formData,
+                    updatedAt: new Date().toISOString()
+                };
+
+                if (currentSlot.type === 'grid') {
+                    const key = `${currentSlot.date}_${currentSlot.meal}`;
+                    const newGrid = { ...bookings, [key]: newBooking };
+                    saveData(newGrid, null);
+                } else {
+                    let newOther;
+                    if (currentSlot.existingData) {
+                        newOther = otherBookings.map(b => b.id === currentSlot.id ? newBooking : b);
+                    } else {
+                        newOther = [...otherBookings, newBooking];
+                    }
+                    saveData(null, newOther);
+                }
+            };
+
+            const deleteBooking = () => {
+                if (!window.confirm("確定要取消這個預約嗎？")) return;
+                
+                if (currentSlot.type === 'grid') {
+                    const key = `${currentSlot.date}_${currentSlot.meal}`;
+                    const newGrid = { ...bookings };
+                    delete newGrid[key];
+                    saveData(newGrid, null);
+                } else {
+                    const newOther = otherBookings.filter(b => b.id !== currentSlot.id);
+                    saveData(null, newOther);
+                }
+            };
+
+            const handleShare = () => {
+                const url = window.location.href;
+                if (navigator.share) {
+                    navigator.share({
+                        title: '2026 龜山傳教士請客表',
+                        text: '邀請大家來填寫2026傳教士請客表！',
+                        url: url,
+                    });
+                } else {
+                    alert('請複製此網址分享給其他成員！');
+                }
+            };
+
+            return (
+                <div className="max-w-7xl mx-auto pb-10">
+                    <Header isSynced={!!GOOGLE_SCRIPT_URL} isLoading={isLoading} />
+                    <ContactCard />
+
+                    <div className="sticky top-0 z-20 bg-orange-50/95 backdrop-blur py-4 px-4 shadow-sm mb-4 transition-all">
+                        <div className="flex justify-center max-w-md mx-auto">
+                            <div className="bg-red-100/50 p-1.5 rounded-2xl flex w-full relative">
+                                <button
+                                    onClick={() => setActiveTab('grid')}
+                                    className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 flex items-center justify-center gap-2 ${
+                                        activeTab === 'grid' 
+                                        ? 'bg-white text-red-700 shadow-md transform scale-[1.02]' 
+                                        : 'text-red-400 hover:text-red-600'
+                                    }`}
+                                >
+                                    <span>📅</span> 春節請客表
+                                </button>
+                                <button
+                                    onClick={() => setActiveTab('other')}
+                                    className={`flex-1 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 flex items-center justify-center gap-2 ${
+                                        activeTab === 'other' 
+                                        ? 'bg-white text-red-700 shadow-md transform scale-[1.02]' 
+                                        : 'text-red-400 hover:text-red-600'
+                                    }`}
+                                >
+                                    <span>🕒</span> 其他時段
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {isLoading ? (
+                        <div className="flex justify-center py-20">
+                            <div className="w-12 h-12 border-4 border-red-200 border-t-red-600 rounded-full animate-spin-slow"></div>
+                        </div>
+                    ) : (
+                        <>
+                            {activeTab === 'grid' && (
+                                <div className="px-2 md:px-6 animate-fade-in">
+                                    <div className="overflow-x-auto no-scrollbar pb-6 -mx-2 px-2">
+                                        <div className="min-w-[850px] bg-white rounded-3xl shadow-xl overflow-hidden border border-red-100">
+                                            <div className="grid grid-cols-[80px_repeat(8,1fr)] bg-red-50 border-b border-red-100">
+                                                <div className="p-3 flex items-center justify-center font-bold text-red-800 bg-red-100/30 text-sm">時段</div>
+                                                {SCHEDULE_DAYS.map((day, idx) => (
+                                                    <div key={idx} className={`p-2 text-center border-l border-red-100 flex flex-col justify-center ${day.name === '除夕' || day.name === '初一' ? 'bg-red-100/50' : ''}`}>
+                                                        <div className="text-[10px] text-red-400 font-bold mb-0.5">{day.date}</div>
+                                                        <div className="text-base font-bold text-gray-800">{day.name}</div>
+                                                        <div className="text-[10px] text-gray-500 mt-0.5">({day.day})</div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                            {MEAL_TYPES.map((meal, rIdx) => (
+                                                <div key={rIdx} className="grid grid-cols-[80px_repeat(8,1fr)] border-b border-gray-100 last:border-b-0">
+                                                    <div className="p-2 flex items-center justify-center font-bold text-gray-500 text-sm bg-gray-50/50 border-r border-gray-100">
+                                                        {meal}
+                                                    </div>
+                                                    {SCHEDULE_DAYS.map((day, cIdx) => {
+                                                        const bookingKey = `${day.date}_${meal}`;
+                                                        const booking = bookings[bookingKey];
+                                                        const isHoliday = day.name === '除夕' || day.name === '初一';
+                                                        return (
+                                                            <div 
+                                                                key={cIdx} 
+                                                                className={`
+                                                                    p-1.5 min-h-[90px] border-l border-gray-100 transition-all cursor-pointer relative group
+                                                                    flex items-center justify-center
+                                                                    ${booking ? 'bg-red-50' : (isHoliday ? 'bg-red-50/20' : 'hover:bg-gray-50')}
+                                                                `}
+                                                                onClick={() => handleSlotClick(day.date, meal, day.name, day.day, booking)}
+                                                            >
+                                                                {booking ? (
+                                                                    <div className="w-full h-full bg-white rounded-xl border border-red-100 shadow-sm p-1.5 flex flex-col justify-center items-center text-center animate-pop-in relative overflow-hidden">
+                                                                        <div className="absolute top-0 left-0 w-1 h-full bg-red-500"></div>
+                                                                        <span className="font-bold text-gray-800 text-xs break-words w-full leading-tight line-clamp-2">
+                                                                            {booking.family}
+                                                                        </span>
+                                                                        {booking.time && (
+                                                                            <span className="text-[9px] bg-red-50 text-red-600 px-1.5 py-0.5 rounded-md mt-1 font-mono">
+                                                                                {booking.time}
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                ) : (
+                                                                    <div className="w-full h-full rounded-xl border border-transparent hover:border-red-200 hover:bg-white transition-all flex items-center justify-center opacity-0 group-hover:opacity-100 hover:shadow-sm">
+                                                                        <span className="text-red-300">
+                                                                            <Icons.Plus size={20} />
+                                                                        </span>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <div className="mt-4 flex flex-col items-center gap-2 text-gray-400 text-xs">
+                                        <div className="flex items-center gap-4">
+                                            <div className="flex items-center gap-1"><div className="w-3 h-3 rounded bg-red-50 border border-red-200"></div> 已預約</div>
+                                            <div className="flex items-center gap-1"><div className="w-3 h-3 rounded bg-white border border-gray-200"></div> 可預約</div>
+                                        </div>
+                                        <div className="md:hidden animate-pulse">← 左右滑動查看完整日期 →</div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {activeTab === 'other' && (
+                                <div className="px-4 max-w-2xl mx-auto animate-fade-in">
+                                    <div className="bg-white rounded-3xl shadow-xl p-6 border border-red-100 min-h-[400px]">
+                                        <div className="flex justify-between items-center mb-6">
+                                            <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                                                <div className="p-2 bg-red-100 rounded-lg text-red-600">
+                                                    <Icons.Clock size={20} />
+                                                </div>
+                                                其他預約列表
+                                            </h2>
+                                            <button 
+                                                onClick={() => handleOtherClick()}
+                                                className="bg-red-600 text-white px-4 py-2 rounded-xl text-sm font-bold shadow-lg shadow-red-200 hover:bg-red-700 active:scale-95 transition-all flex items-center gap-2"
+                                            >
+                                                <Icons.Plus size={16} /> 新增
+                                            </button>
+                                        </div>
+
+                                        {otherBookings.length === 0 ? (
+                                            <div className="flex flex-col items-center justify-center py-16 text-center text-gray-300 border-2 border-dashed border-gray-100 rounded-2xl">
+                                                <Icons.Clock className="w-16 h-16 mb-2 opacity-50" />
+                                                <p className="font-medium">目前沒有其他時間的預約</p>
+                                                <p className="text-xs mt-1">點擊右上方按鈕新增</p>
+                                            </div>
+                                        ) : (
+                                            <div className="space-y-3">
+                                                {otherBookings.map((item) => (
+                                                    <div 
+                                                        key={item.id}
+                                                        onClick={() => handleOtherClick(item)}
+                                                        className="bg-white border border-gray-100 p-4 rounded-2xl flex justify-between items-center shadow-sm hover:shadow-md hover:border-red-200 cursor-pointer transition-all group active:scale-[0.99]"
+                                                    >
+                                                        <div className="flex-1">
+                                                            <div className="flex items-center gap-2 mb-1.5">
+                                                                <span className="font-bold text-gray-800 text-lg">{item.family}</span>
+                                                            </div>
+                                                            <div className="text-sm text-gray-500 flex flex-wrap gap-2 items-center">
+                                                                <span className="bg-orange-50 text-orange-700 px-2 py-0.5 rounded-md text-xs flex items-center gap-1 font-medium">
+                                                                    <Icons.Clock size={12} /> {item.time || "時間未定"}
+                                                                </span>
+                                                                <span className="text-gray-400 text-xs">|</span>
+                                                                <span className="flex items-center gap-1 text-xs">
+                                                                    <Icons.Phone size={12} /> {item.phone}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                        <div className="text-gray-300 group-hover:text-red-500 bg-gray-50 p-2 rounded-full group-hover:bg-red-50 transition-colors">
+                                                            <Icons.Edit size={18} />
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                        <div className="mt-8 text-xs text-gray-500 bg-gray-50 p-4 rounded-xl leading-relaxed border border-gray-100">
+                                            <p className="flex items-center gap-2 mb-1 font-bold text-gray-700">
+                                                <span>💡</span> 使用說明
+                                            </p>
+                                            此區塊用於安排正式三餐以外的時段（如下午茶、點心），或是春節日期範圍之外的預約。
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </>
+                    )}
+                    
+                    <div className="fixed bottom-6 right-6 z-30">
+                        <button 
+                            onClick={handleShare}
+                            className="bg-gray-800 text-white p-4 rounded-full shadow-2xl hover:bg-gray-700 hover:scale-110 transition-all active:scale-95"
+                        >
+                            <Icons.Share size={24} />
+                        </button>
+                    </div>
+
+                    <BookingModal 
+                        isOpen={isModalOpen} 
+                        onClose={() => setIsModalOpen(false)}
+                        data={currentSlot?.existingData ? { ...currentSlot.existingData, slotLabel: currentSlot.slotLabel, defaultTime: currentSlot.defaultTime } : { slotLabel: currentSlot?.slotLabel, defaultTime: currentSlot?.defaultTime }}
+                        type={currentSlot?.type}
+                        onSave={saveBooking}
+                        onDelete={deleteBooking}
+                        isEdit={!!currentSlot?.existingData}
+                    />
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
