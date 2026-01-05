@@ -497,15 +497,6 @@
                 }
             };
 
-            const handleShare = () => {
-                const url = window.location.href;
-                if (navigator.share) {
-                    navigator.share({ title: '2026 龜山傳教士請客表', text: '邀請大家來填寫2026傳教士請客表！', url: url });
-                } else {
-                    alert('請複製此網址分享給其他成員！');
-                }
-            };
-
             // 渲染地址連結
             const renderAddressLink = (address) => {
                 if (!address) return null;
@@ -630,10 +621,6 @@
                         </>
                     )}
                     
-                    <div className="fixed bottom-6 right-6 z-30">
-                        <button onClick={handleShare} className="bg-gray-800 text-white p-4 rounded-full shadow-2xl hover:bg-gray-700 hover:scale-110 transition-all active:scale-95"><Icons.Share size={24} /></button>
-                    </div>
-
                     <BookingModal 
                         isOpen={isModalOpen} 
                         onClose={() => setIsModalOpen(false)}
