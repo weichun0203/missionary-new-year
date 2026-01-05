@@ -334,6 +334,7 @@
                                     <div className="absolute left-3 top-3 text-gray-400 group-focus-within:text-red-500 pointer-events-none z-10"><Icons.Clock size={18} /></div>
                                     <input type="time" required value={time} onChange={(e) => setTime(e.target.value)} className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-red-500 outline-none transition-all relative" />
                                 </div>
+                                <p className="text-xs text-gray-400 mt-1 pl-1">請使用 24 小時制 (例如：下午 6:00 請填 18:00)</p>
                             </div>
                             <div className="flex gap-3 pt-4 mt-2">
                                 {isEdit && (
